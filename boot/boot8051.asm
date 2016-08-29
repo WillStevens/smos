@@ -1,7 +1,7 @@
 	list p=16f84,f=INHX32
 	#include p16f84.inc
 
-;Bits of config word are set as follows (from bit 13 to bit 0) i.e. CP1 = bit 13
+;Bits of config word are set as follows (from bit 13 to bit 0)
 ;Bit 13-4 : (/CP) = 1 : code protection off
 ;Bit 3   : (/PWRTE) = 0 : Power up timer enabled
 ;Bit 2   : (WDTE) = 0 : Watchdog timer disabled
@@ -13,10 +13,10 @@
 ; Pins used:
 ; RB7-RB0 : Address / data output
 ; RA0 : 8031 reset pin (active high)
-; RA1 : 74373 latch pin (active high)
+; RA1 : demultiplexing 74373 enable pin (active high)
 ; RA2 : RAM /WR pin (active low)
-; RA3 : DATA//PROG pin (to be pulled down in order to write to lower 64k)
-; RA4 : /OE for pulling high-address bits to 0v
+; RA3 : DATA//PROG pin (set low in order to write to lower 64K - i.e. program memory)
+; RA4 : /OE for 74373 used for setting upper address bits low (active low)
 
 
 AddressByte equ 020h
@@ -53,7 +53,7 @@ PortInit
 	movwf TRISA
 	bcf STATUS,RP0
 
-	; hi-address set to 0, DATA//PROG set low, 6116 /WR pin high, 8031 reset pin high, 74373 latch pin low
+	; Set upper address bits low, DATA//PROG set low to write to program memory, RAM /WR pin high, 8031 reset pin high, demultiplexing 74373 enable pin low
 	movlw b'11100101'
 	movwf PORTA
 	bsf STATUS,RP0
@@ -469,7 +469,7 @@ Start8051
 	movwf TRISB
 	bcf STATUS,RP0
 
-	; Set the 8031 reset pin high - all other pins remain high impedance
+	; Set the 8031 reset pin high and all other pins to high impedance state
 	movlw b'11111101'
 	movwf PORTA
 	bsf STATUS,RP0
@@ -477,7 +477,7 @@ Start8051
 	movwf TRISA
 	bcf STATUS,RP0
 
-	; Set the 8031 reset pin low - it should start executing the program!
+	; Set the 8031 reset pin low - it will start executing the program at address 0000h
 	movlw b'11111110'
 	movwf PORTA
 
@@ -486,6 +486,7 @@ Start8051
 WriteNextByte
 	movwf DataByte
 
+	; Output A7-A0 on PORTB
 	movf AddressByte,0
 	movwf PORTB
 
@@ -493,22 +494,23 @@ WriteNextByte
 	clrf TRISB
 	bcf STATUS,RP0
 
-	; hi-address set to 0, DATA//PROG set low, 6116 /WR pin high, 8031 reset pin high, 74373 latch pin high
+	; Set upper address bits low, DATA//PROG set low to write to program memory, RAM /WR pin high, 8031 reset pin high, demultiplexing 74373 enable pin high
 	movlw b'11100111'
 	movwf PORTA
 	
-	; hi-address set to 0, DATA//PROG set low,6116 /WR pin high, 8031 reset pin high, 74373 latch pin low
+	; Set upper address bits low, DATA//PROG set low to write to program memory, RAM /WR pin high, 8031 reset pin high, demultiplexing 74373 enable pin low
 	movlw b'11100101'
 	movwf PORTA
 
+	; Output the data byte on PORTB
 	movf DataByte,0
 	movwf PORTB
 
-	; hi-address set to 0, DATA//PROG set low,6116 /WR pin low, 8031 reset pin high, 74373 latch pin low
+	; Set upper address bits low, DATA//PROG set low to write to program memory, RAM /WR pin low, 8031 reset pin high, demultiplexing 74373 enable pin low
 	movlw b'11100001'
 	movwf PORTA
 
-	; hi-address set to 0, DATA//PROG set low,6116 /WR pin high, 8031 reset pin high, 74373 latch pin low
+	; Set upper address bits low, DATA//PROG set low to write to program memory, RAM /WR pin high, 8031 reset pin high, demultiplexing 74373 enable pin low
 	movlw b'11100101'
 	movwf PORTA
 
